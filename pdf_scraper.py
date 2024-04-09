@@ -29,6 +29,7 @@ def extract_data_from_pdf(pdf_file):
     # pattern = r"(\w+)\s+(.*?)\s+IN\s+(.*?)\s+(\d+)\s+([^\s]+(?: [^\s]+)?)\s+(\S+)"
     pattern = r"(\w+)\s+(.*?)\s+IN\s+(.*?)\s+(\d+)\s+([^\s]+(?: [^\s]+)?)\s+(.*?)$"
     match = re.match(pattern, lines[3])
+    # match = re.match(pattern, "W001  WALKIN IN UNITED KINGDOM 1 DPD EXPRESS ... 13.80")
 
     if match:
         account_number = match.group(1)
@@ -62,24 +63,104 @@ def extract_data_from_pdf(pdf_file):
         #     end="-----\n",
         # )
 
-        return account_number, customer, destination, pieces, service, box_weight
+        # return account_number, customer, destination, pieces, service, box_weight
     else:
         print("nai")
-        return None
+        # return None
 
-    # for line in lines:
-    #     if re.match(r'^ACCOUNT NUMBER\s+', line):
-    #         data['ACCOUNT NUMBER'] = line.split()[1]
+    company = lines[5].split()
 
-    # patterns = {
-    #     "ACCOUNT NUMBER": r"ACCOUNT NUMBER\s+(\S+)",
-    #     "CUSTOMER": r"CUSTOMER\s+(.*?)\s+Origin",
-    #     "Origin": r"Origin\s+(.*?)\s+Destination",
-    #     "Destination": r"Destination\s+(\S+)",
-    #     "Pieces": r"Pieces\s+(\S+)",
-    #     "SERVICE": r"SERVICE\s+(\S+)",
-    #     "Box Weight": r"Box Weight\s+(\S+)",
-    # }
+    if len(company) == 3:
+        senders_company = company[0]
+        recipients_company = company[1]
+    elif len(company) >= 5:
+        senders_company = " ".join(company[:2])
+        recipients_company = " ".join(company[2:4])
+
+    print(senders_company)
+    print(recipients_company)
+
+    names = lines[7].split()
+
+    if len(names) == 3:
+        senders_name = names[0]
+        recipients_name = names[1]
+    elif len(names) >= 5:
+        senders_name = " ".join(names[:2])
+        recipients_name = " ".join(names[2:4])
+
+    print(senders_name)
+    print(recipients_name)
+
+    # Assuming address_line contains '1 GULDEHRA, 54 KURUKSHETRA 12 ASHFORD AVENUE, HAYES 13.80'
+    # address_line = "1 GULDEHRA edd, 54 KURUKSHETRA ds 12 ASHFORD AVENUE, HAYES 13.80"
+    # address_line = "GULDEHRA, KURUKSHETRA ds ASHFORD AVENUE, HAYES 13.80"
+    address_line = lines[9]
+
+    address = address_line.split(",")
+    print(address)
+    print(address[1][::-1])
+    find_number = False
+    recipients_address = ""
+    first_address_second_half_idx = -1
+    for idx, char in enumerate(address[1][::-1]):
+        # print(idx, char, end="+++\n")
+        if (char.isalpha() or char == " ") and not find_number:
+            recipients_address += char
+            # print("first")
+        elif char.isdigit():
+            recipients_address += char
+            find_number = True
+            # print("second")
+
+        else:
+            first_address_second_half_idx = idx
+            break
+            # print("third")
+    senders_address_last_part = ""
+    for c in address[2]:
+        if c.isalpha() or c == " ":
+            senders_address_last_part += c
+
+    recipients_address = (
+        f"{recipients_address[::-1]},{senders_address_last_part}".strip()
+    )
+    senders_address = (
+        address[0] + address[1][::-1][first_address_second_half_idx + 1 :][::-1]
+    )
+
+    print(senders_address)
+    print(recipients_address)
+    # print(recipients_address[::-1] + "," + senders_address_last_part)
+    # print(address[0] + address[1][::-1][idx + 1 :][::-1])
+
+    # senders_address = address[0] + "," +
+
+    # # Find the second address
+    # second_address_match = re.search(
+    #     r"(?<=\d\.\d{2}\s)(.*?)(?=\s\d)", address_line[::-1]
+    # )
+    # if second_address_match:
+    #     second_address = second_address_match.group(0).strip()
+    #     print("Second Address:", second_address[::-1])
+
+    # Find the first address
+    # first_address_match = re.search(r"(\d+\s+\S+\s*)*(?=\s+\d+\s)", address_line)
+    # if first_address_match:
+    #     first_address = first_address_match.group(0).strip()
+    #     print("First Address:", first_address)
+
+    # address_line_without_first = re.sub(
+    #     re.escape(first_address), "", address_line, count=1
+    # )
+    # print("Address Line without First Address:", address_line_without_first)
+
+    # second_address_match = re.search(
+    #     r"(\d+\s+\S+\s*)*(?=\s+\d+\s)", address_line_without_first
+    # )
+    # if second_address_match:
+    #     second_address = second_address_match.group(0).strip()
+    #     print("Second Address:", second_address)
 
     # # Extract data using regex patterns
     # for key, pattern in patterns.items():
